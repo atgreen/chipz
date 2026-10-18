@@ -33,6 +33,7 @@
      #+ecl 'gray:fundamental-binary-input-stream
      #+clasp 'gray:fundamental-binary-input-stream
      #+cl-amiga 'gray:fundamental-binary-input-stream
+     #+egcl 'egcl-gray-streams:fundamental-binary-input-stream
      #+genera 'gray-streams:fundamental-binary-input-stream)
 
   (defvar *stream-read-byte-function*
@@ -45,6 +46,7 @@
      #+ecl 'gray:stream-read-byte
      #+clasp 'gray:stream-read-byte
      #+cl-amiga 'gray:stream-read-byte
+     #+egcl 'egcl-gray-streams:stream-read-byte
      #+genera 'gray-streams:stream-read-byte)
 
   (defvar *stream-read-sequence-function*
@@ -61,6 +63,8 @@
      ;; CL:READ-SEQUENCE dispatches to it for Gray streams, so DEFINE-STREAM-
      ;; READ-SEQUENCE below installs a real bulk decompress method.
      #+cl-amiga 'gray:stream-read-sequence
+     ;; EGCL's STREAM-READ-SEQUENCE takes (stream sequence start end).
+     #+egcl 'egcl-gray-streams:stream-read-sequence
      #+genera 'gray-streams:stream-read-sequence)
 ) ; EVAL-WHEN
 
@@ -79,7 +83,7 @@
     `(defmethod #.*stream-read-sequence-function* ((stream ,specializer) seq &optional (start 0) end)
        ,definition)
 
-    #+(or lispworks openmcl)
+    #+(or lispworks openmcl egcl)
     `(defmethod #.*stream-read-sequence-function* ((stream ,specializer) seq start end)
        ,definition)
 
