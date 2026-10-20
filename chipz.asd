@@ -39,10 +39,13 @@
                                              "gzip" "zlib"
                                              "conditions"))
                (:file "bzip2" :depends-on ("dstate" "constants"))
+               (:file "egcl-native" :depends-on ("dstate" "conditions"))
                (:file "decompress" :depends-on ("inflate-state"
-                                                "inflate" "bzip2"))
+                                                "inflate" "bzip2"
+                                                "egcl-native"))
                #+chipz-system:gray-streams
-               (:file "stream" :depends-on ("inflate-state" "inflate"))
+               (:file "stream" :depends-on ("inflate-state" "inflate"
+                                            "egcl-native"))
 
                #-chipz-system:gray-streams
                (:file "stream-fallback" :depends-on ("package"))))

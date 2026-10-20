@@ -117,6 +117,15 @@
 
 ;;; constructors
 (defun make-decompressing-stream (format stream)
+  #+chipz-egcl-native
+  (let ((native (native-format format)))
+    (when native
+      (return-from make-decompressing-stream
+        (make-instance 'native-decompressing-stream
+                       :stream stream
+                       :native-format native
+                       :dstate (make-inflate-state format)
+                       :dfun #'%inflate))))
   (multiple-value-bind (state dfun)
       (ecase format
         ((:deflate :zlib :gzip deflate zlib gzip)
@@ -227,3 +236,38 @@
 
 (defmethod #.*stream-read-byte-function* ((stream decompressing-stream))
   (read-and-decompress-byte stream))
+
+;;; On EGCL a deflate, zlib or gzip stream reads all of its input at the first
+;;; read, decompresses it in one call (see egcl-native.lisp), and serves the
+;;; result.
+#+chipz-egcl-native
+(progn
+  (defclass native-decompressing-stream (decompressing-stream)
+    ((native-format :initarg :native-format :reader native-stream-format)
+     (native-output :initform nil)
+     (native-index :initform 0)))
+
+  (defun native-stream-output (stream)
+    (with-slots (native-output) stream
+      (or native-output
+          (prog1 (setf native-output
+                       (native-decompress (read-all-octets (wrapped-stream stream))
+                                          (native-stream-format stream)))
+            (setf (dstate-done (dstate stream)) t)))))
+
+  (defmethod #.*stream-read-byte-function* ((stream native-decompressing-stream))
+    (let ((output (native-stream-output stream)))
+      (with-slots (native-index) stream
+        (if (< native-index (length output))
+            (prog1 (aref output native-index)
+              (incf native-index))
+            :eof))))
+
+  (define-stream-read-sequence native-decompressing-stream
+    (let* ((output (native-stream-output stream))
+           (index (slot-value stream 'native-index))
+           (count (min (- end start) (- (length output) index))))
+      (replace seq output :start1 start :start2 index :end2 (+ index count))
+      (incf (slot-value stream 'native-index) count)
+      (+ start count))))
+

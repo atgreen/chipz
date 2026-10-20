@@ -27,6 +27,13 @@
       (%decompress output format vector keys))))
 
 (defun %decompress (output format input keys)
+  ;; A whole vector or stream, named by format, decompresses natively on EGCL.
+  #+chipz-egcl-native
+  (let ((native (native-format format)))
+    (when (and native (null output) (null keys) (typep input '(or vector stream)))
+      (return-from %decompress
+        (native-decompress (if (typep input 'vector) input (read-all-octets input))
+                           native))))
   (let ((state (make-dstate format)))
     (multiple-value-prog1 (apply #'decompress output state input keys)
       (finish-dstate state))))

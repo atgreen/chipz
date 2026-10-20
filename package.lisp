@@ -37,3 +37,11 @@
            #:invalid-stored-block-length-error
            #:bzip2-error
            #:invalid-bzip2-data))
+
+;;; EGCL decompresses deflate, zlib and gzip data in its runtime
+;;; (EGCL-EXT:INFLATE); chipz's own inflate runs at a few kilobytes a second
+;;; there.  See egcl-native.lisp.
+#+egcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (when (fboundp (intern "INFLATE" "EGCL-EXT"))
+    (pushnew :chipz-egcl-native *features*)))
